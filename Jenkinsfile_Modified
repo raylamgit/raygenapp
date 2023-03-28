@@ -1,0 +1,305 @@
+// GitLab mvpgenapp group MVP-genapp Ray 5/02/2021 3:06PM
+// https://developer.ibm.com/components/ibmz/tutorials/build-a-pipeline-with-jenkins-dependency-based-build-and-urbancode-deploy/
+// Agent labels
+echo 'MVP-genapp Jenkinsfile pipeline started'
+def zOsAgentLabel = env.ZOS_AGENT_LABEL ? env.ZOS_AGENT_LABEL : 'Ray_zOS-Agent'
+def linuxAgent = 'master'
+
+// GIT repositories
+def srcGitRepo = 'http://MVPGitLabServer1.fyre.ibm.com/mvpgenapp/dbb-pipeline.git'
+def srcGitBranch = 'master'
+def zAppBuildGitRepo = 'http://MVPGitLabServer1.fyre.ibm.com/mvpgenapp/dbb-zappbuild.git'
+def zAppBuildGitBranch = 'development' // Some important issues are not yet merged into master.
+def dbbGitRepo = 'http://MVPGitLabServer1.fyre.ibm.com/mvpgenapp/dbb.git'
+def dbbGitBranch = 'master'
+
+echo 'MVP-genapp Jenkinsfile pipeline DBB'
+// DBB
+def dbbHome='/var/dbb110'
+def dbbUrl='https://mvpserver1.fyre.ibm.com:9443/dbb'
+def dbbHlq='RLAM.GENAPP'
+def dbbBuildType='-i'
+def dbbGroovyzOpts= ''
+def dbbBuildExtraOpts= ''
+def dbbCredentialOptions='-id ray -pw ray'
+
+echo 'MVP-genapp Jenkinsfile pipeline Artifactory'
+// Artifactory
+def artiCredentialsId = 'Ask Dennis'
+def ARTIFACTORY_URL='https://na.artifactory.swg-devops.com/artifactory/'
+def ARTIFACTORY_REPO_PATH='hyc-mvp-team-maven-local/MVPGenapp'
+
+// UCD
+def ucdApplication = 'RayDemo_App'
+def ucdProcess = 'Ray_Deploy_App_Bind_CICS_EXT_Proc'
+def ucdComponent = 'IBMDemo'
+def ucdEnv = 'Dev'
+def ucdSite = 'Jenkins2UCDServer'
+def ucdBuztool = '/var/ucd/v7/bin/buztool.sh'
+// Verbose
+def verbose = true
+
+// Private
+def hasBuildFiles = true
+def idzCodeReviewFlag = false
+def buildVerbose = ''
+
+@NonCPS
+String getArtifactoruUrl(String artiUrl) {
+    // UCD always add /artifactory
+    def exp =  /(.*)\\/artifactory?$/
+    def match = artiUrl =~ exp
+    if (match.find()) {
+        return match.group(1)
+    }
+    return artiUrl
+}
+
+
+echo 'MVP-genapp Jenkinsfile pipeline Stage Git Clone/Refresh '
+pipeline {
+
+    agent { label linuxAgent }
+
+    options { skipDefaultCheckout(true) }
+
+    stages {
+
+        stage('Git Clone/Refresh') {
+            agent { label zOsAgentLabel }
+            steps {
+                script {
+                    // Verbose
+                    verbose = env.VERBOSE && env.VERBOSE == 'true' ? true : false
+                    buildVerbose = verbose ? '-v' : ''
+                    if ( verbose ) {
+                        echo sh(script: 'env|sort', returnStdout: true)
+                    }
+
+echo 'MVP-genapp Jenkinsfile pipeline Check Env '
+                    if ( env.DBB_HOME == null )
+                        error("DBB_HOME is not defined !!!")
+                    if ( env.DBB_URL == null )
+                        error("DBB_URL is not defined !!!")
+                    if ( env.DBB_HLQ == null )
+                        error("DBB_HLQ is not defined !!!")
+                    if ( env.ARTIFACTORY_URL == null )
+                        error("ARTIFACTORY_URL is not defined !!!")
+                    if ( env.ARTIFACTORY_REPO_PATH == null )
+                        error("ARTIFACTORY_REPO_PATH is not defined !!!")
+                    if ( env.UCD_BUZTOOL_PATH == null )
+                        error("UCD_BUZTOOL_PATH is not defined !!!")
+
+echo 'MVP-genapp Jenkinsfile pipeline dir -> MVP-genapp '
+                    dir('MVP-genapp') {
+                        sh(script: 'rm -f .git/info/sparse-checkout', returnStdout: true)
+                        srcGitRepo = scm.getUserRemoteConfigs()[0].getUrl()
+                        srcGitBranch = scm.branches[0].name
+                        def scmVars = null
+                        scmVars = checkout([$class: 'GitSCM', branches: [[name: srcGitBranch]],
+                                                doGenerateSubmoduleConfigurations: false,
+                                                extensions: [
+                                                [$class: 'SparseCheckoutPaths',
+                                                   sparseCheckoutPaths:[[$class:'SparseCheckoutPath',
+                                                   path:'MVP-genapp/']]]
+                                                ],
+                                                submoduleCfg: [],
+                                                userRemoteConfigs: [[
+                                                                     url: srcGitRepo,
+                                                                     ]]])
+                    }
+
+                    dir("dbb-zappbuild") {
+                        sh(script: 'rm -f .git/info/sparse-checkout', returnStdout: true)
+                        def scmVars =
+                            checkout([$class: 'GitSCM', branches: [[name: zAppBuildGitBranch]],
+                              doGenerateSubmoduleConfigurations: false,
+                              submoduleCfg: [],
+                            userRemoteConfigs: [[
+                                url: zAppBuildGitRepo,
+                            ]]])
+                    }
+
+                    dir("dbb") {
+                        sh(script: 'rm -f .git/info/sparse-checkout', returnStdout: true)
+                        def scmVars =
+                            checkout([$class: 'GitSCM', branches: [[name: dbbGitBranch]],
+                              doGenerateSubmoduleConfigurations: false,
+                              extensions: [
+                                       [$class: 'SparseCheckoutPaths',  sparseCheckoutPaths:[
+                                          [$class:'SparseCheckoutPath', path:'Pipeline/CreateUCDComponentVersion/'],
+                                          [$class:'SparseCheckoutPath', path:'Pipeline/RunIDZCodeReview/']
+                                       ]]
+                                    ],
+                              submoduleCfg: [],
+                            userRemoteConfigs: [[
+                                url: dbbGitRepo,
+                            ]]])
+                    }
+                }
+            }
+        }
+
+        stage('DBB Build & UnitTest & Code Coverage') {
+            steps {
+                script{
+                    def zUnitContents = []
+                    def cccFolder = null
+                    node( zOsAgentLabel ) {
+                        if ( env.DBB_BUILD_EXTRA_OPTS != null ) {
+                           dbbBuildExtraOpts = env.DBB_BUILD_EXTRA_OPTS
+                        }
+                        if ( env.DBB_BUILD_TYPE != null ) {
+                            dbbBuildType = env.DBB_BUILD_TYPE
+                        }
+                        if ( env.DBB_CREDENTIAL_OPTIONS != null ) {
+                            dbbCredentialOptions = env.DBB_CREDENTIAL_OPTIONS
+                        }
+                        if ( env.GROOVYZ_BUILD_EXTRA_OPTS != null ) {
+                            dbbGroovyzOpts = env.GROOVYZ_BUILD_EXTRA_OPTS
+                        }
+                        def dbbZunitCccOpts = ''
+                        if ( env.CCC_HOST != null && env.CCC_PORT != null && env.CCC_FOLDER != null ) {
+                            dbbZunitCccOpts="-cc -cch ${env.CCC_HOST} -ccp ${env.CCC_PORT}"
+                            cccFolder = env.CCC_FOLDER
+                        }
+                        idzCodeReviewFlag = env.RUN_IDZ_CODE_REVIEW && env.RUN_IDZ_CODE_REVIEW == 'true' ? true : false
+                        dbbHome = env.DBB_HOME
+                        dbbUrl = env.DBB_URL
+                        dbbHlq = env.DBB_HLQ
+                        sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/dbb-zappbuild/build.groovy --logEncoding UTF-8 -w ${WORKSPACE} --application MVP-genapp --sourceDir ${WORKSPACE}/MVP-genapp  --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER} --hlq ${dbbHlq}.GENAPP --url $dbbUrl $dbbCredentialOptions -d $dbbBuildType $buildVerbose $dbbZunitCccOpts $dbbBuildExtraOpts"
+                        def files = findFiles(glob: "**BUILD-${BUILD_NUMBER}/**/buildList.txt")
+                        // Do not enter into some steps if nothing in the build list
+                        hasBuildFiles = files.length > 0 && files[0].length > 0
+
+                        def zUnitFiles = findFiles(glob: "**BUILD-${BUILD_NUMBER}/**/*.zunit.report.log")
+                        zUnitFiles.each { zUnit ->
+                            println "Process zUnit: $zUnit.path"
+                            def zUnitContent = readFile file: zUnit.path
+                            zUnitContents << zUnitContent
+                        }
+                    }
+                    zUnitContents.each { zUnitContent ->
+                        writeFile file: '/tmp/zUnit.zunit', text:zUnitContent
+                        sh (returnStatus: true, script: '''#!/bin/sh
+                            curl --silent https://raw.githubusercontent.com/ibm/dbb-pipeline/master/MVP-genapp/zUnit/xsl/AZUZ2J30.xsl -o /tmp/AZUZ2J30.xsl
+                            xsltproc /tmp/AZUZ2J30.xsl /tmp/zUnit.zunit > ${WORKSPACE}/zUnit.xml
+                        ''')
+                        junit "zUnit.xml"
+                    }
+                    if ( cccFolder != null ) {
+                        env.CCC_FOLDER = cccFolder
+                        sh (returnStatus: true, script: '''#!/bin/sh
+                            mkdir -p ${WORKSPACE}/BUILD-${BUILD_NUMBER}
+                            mv -f ${CCC_FOLDER}/*.pdf ${WORKSPACE}/BUILD-${BUILD_NUMBER}
+                            mv -f ${CCC_FOLDER}/*.cczip ${WORKSPACE}/BUILD-${BUILD_NUMBER}
+                        ''')
+                        dir("${WORKSPACE}/BUILD-${BUILD_NUMBER}") {
+                            archiveArtifacts allowEmptyArchive: true,
+                                            artifacts: "*.pdf,*.cczip"
+                                            onlyIfSuccessful: false
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    node( zOsAgentLabel ) {
+                        dir("${WORKSPACE}/BUILD-${BUILD_NUMBER}") {
+                            archiveArtifacts allowEmptyArchive: true,
+                                            artifacts: '**/*.log,**/*.json,**/*.html',
+                                            excludes: '**/*clist',
+                                            onlyIfSuccessful: false
+                        }
+                    }
+                }
+                unstable {
+                    script{
+                         error ("zUnit tests failed!!!")
+                    }
+                }
+            }
+        }
+
+        stage("IDz Code Review") {
+            when  { expression { return  idzCodeReviewFlag == true  } }
+            steps {
+                script{
+                    if ( hasBuildFiles ) {
+                        def crContent = null
+                        node( zOsAgentLabel ) {
+                            BUILD_OUTPUT_FOLDER = sh (script: "ls ${WORKSPACE}/BUILD-${BUILD_NUMBER}  | grep build | sort -u", returnStdout: true).trim()
+                            sh "$DBB_HOME/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/dbb/Pipeline/RunIDZCodeReview/RunCodeReview.groovy --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER}/${BUILD_OUTPUT_FOLDER} -cr  ${WORKSPACE}/MVP-genapp/MVP-genapp/cr-rules/CodeReviewRules.dat -ccr  ${WORKSPACE}/MVP-genapp/MVP-genapp/cr-rules/CodeReviewRules.ccr"
+                            dir ("${WORKSPACE}/BUILD-${BUILD_NUMBER}/${BUILD_OUTPUT_FOLDER}") {
+                                def crJunitFile = fileExists "CodeReviewJUNIT.xml"
+                                if ( crJunitFile ) {
+                                    crContent = readFile file: "CodeReviewJUNIT.xml"
+                                    archiveArtifacts allowEmptyArchive: true,
+                                            artifacts: '*.csv,*.xml',
+                                            onlyIfSuccessful: false
+                                }
+                            }
+                        }
+                        if ( crContent ) {
+                            sh "mkdir -p ${WORKSPACE}/BUILD-${BUILD_NUMBER}"
+                            writeFile file: "${WORKSPACE}/BUILD-${BUILD_NUMBER}/CodeReviewJUNIT.xml", text:crContent.trim()
+                            junit allowEmptyResults: true, testResults: "BUILD-${BUILD_NUMBER}/CodeReviewJUNIT.xml"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('UCD Package') {
+            steps {
+                script {
+                    node( zOsAgentLabel ) {
+                        if ( hasBuildFiles ) {
+                            def artiUrl = getArtifactoruUrl(env.ARTIFACTORY_URL)
+                            def repositoryPath = env.ARTIFACTORY_REPO_PATH
+
+                            BUILD_OUTPUT_FOLDER = sh (script: "ls ${WORKSPACE}/BUILD-${BUILD_NUMBER}  | grep build | sort -u", returnStdout: true).trim()
+ // can't figure out what artiCredentialsId is, bypass and cp my own artifactory.properties
+                            sh "cp $HOME/Jenkins-Cloud/workspace/artifactory.properties ${WORKSPACE}/BUILD-${BUILD_NUMBER}/artifactoy.properties"
+ /*  LAM Skip starts        dir("${WORKSPACE}/BUILD-${BUILD_NUMBER}/${BUILD_OUTPUT_FOLDER}") {
+                                withCredentials([usernamePassword(credentialsId: artiCredentialsId, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                                    writeFile file: "${WORKSPACE}/BUILD-${BUILD_NUMBER}/artifactoy.properties", encoding: "ibm-1047",
+                                       text:"""password=$PASSWORD
+username=$USERNAME
+Repository_type=artifactory
+repository=${repositoryPath}
+url=${artiUrl}
+                                      """   Skip ends   */
+                                }
+                                echo " Start dbb-ucd-packaging.groovy "
+                                sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/dbb/Pipeline/CreateUCDComponentVersion/dbb-ucd-packaging.groovy --buztool ${ucdBuztool} --component ${ucdComponent} --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER}/${BUILD_OUTPUT_FOLDER} -prop ${WORKSPACE}/BUILD-${BUILD_NUMBER}/artifactoy.properties"
+                            }
+                        }
+                    }
+                }
+//            }   Extra brackets
+//        }    Extra brackets
+
+        stage('UCD Deploy') {
+            steps {
+                script{
+echo 'UCD Deploy Starts'
+                    if ( hasBuildFiles ) {
+                        script{
+                            step(
+                                  [$class: 'UCDeployPublisher',
+                                    deploy: [
+                                        deployApp: ucdApplication,
+                                        deployDesc: 'Requested from Jenkins',
+                                        deployEnv: ucdEnv,
+                                        deployOnlyChanged: false,
+                                        deployProc: ucdProcess,
+                                        deployVersions: ucdComponent + ':latest'],
+                                    siteName: ucdSite])
+                        }
+                    }
+                }
+            }
+        }
+     }
+  }
