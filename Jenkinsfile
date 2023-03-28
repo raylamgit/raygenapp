@@ -204,7 +204,7 @@ echo 'raygenapp Jenkinsfile pipeline dir -> raygenapp '
                         dbbHome = env.DBB_HOME
                         dbbUrl = env.DBB_URL
                         dbbHlq = env.DBB_HLQ
-                        sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/dbb-zappbuild/build.groovy --logEncoding UTF-8 -w ${WORKSPACE} --application raygenapp --sourceDir ${WORKSPACE}/raygenapp  --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER} --hlq ${dbbHlq}.GENTEST  $dbbCredentialOptions -d $dbbBuildType $buildVerbose $dbbZunitCccOpts $dbbBuildExtraOpts "
+                        sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/rayzapp/build.groovy --logEncoding UTF-8 -w ${WORKSPACE} --application raygenapp --sourceDir ${WORKSPACE}  --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER} --hlq ${dbbHlq}.RAYGENAP  $dbbCredentialOptions -d $dbbBuildType $buildVerbose $dbbZunitCccOpts $dbbBuildExtraOpts "
                         def files = findFiles(glob: "**BUILD-${BUILD_NUMBER}/**/buildList.txt")
                         // Do not enter into some steps if nothing in the build list
                         hasBuildFiles = files.length > 0 && files[0].length > 0
