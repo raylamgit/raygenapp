@@ -1,12 +1,22 @@
-{"AMODE"     : "AMODE(24 | 31 | 64 | ANY | MIN)",
- "RMODE"     : "RMODE(MIN | 24 | ANY | 31 | SPLIT [,INITIAL | COMPAT])",
- "COMPPARM"  : "LIST,MAP,RENT,COMPAT(PM5),XREF(SHORT),NONUMBER,SOURCE",
- "COBOLVER"  : "V4,V6",
- "PROCESSOR" : "ENDEVOR-IBM370-COBOL",
- "ANYOPTION" : "NOCOMPILE",
- "DBRM"      : "RLAM.PROD.DBRMLIB",
- "DB2OWNER"  : "IBMUSER",
- "QUALIFIER" : "DB2ABC"
+{"LGICDB01": {
+  "PROCESSOR" : "ENDEVOR-IBM370-COBOL",
+                "COBOL"   : {
+                                "VERSION"       : "V6",
+                                "OPTIONS"       : "LIST,RENT",
+                                "CICS"          : "V5R6M0"
+                            },
+                "LINKPARM" : {
+                                "AMODE"         : "AMODE(24)",
+                                "RMODE"         : "RMODE(ANY)"
+                            },
+                "LINKEDIT" : {
+                                "ENTRY"         : "NEWENTRY",
+                                "INCLUDE"       : "RAYLAM01"
+                            },
+                "DB2"     : {
+                                "SSID"          : "DBC1",
+                                "OWNER"         : "IBMUSER",
+                                "QUALIFER"      : "DB2ADMIN"
+                            }
+             }
 }
-
-
