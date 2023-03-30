@@ -18,7 +18,7 @@
       * Select customer details from DB2 table                         *
       *                                                                *
       *                                                                *
-      *   ray lam 03/30/2023 1,2,3
+      *   ray lam 03/30/2023 sysprintUtil 1
       ******************************************************************
        IDENTIFICATION DIVISION.
        PROGRAM-ID. LGICDB01.
