@@ -1,4 +1,5 @@
       ******************************************************************
+      *  Ray lam 03/30/2023 Testing Sysprint
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
@@ -19,8 +20,6 @@
       *  DB2 customer table creating a new customer entry.             *
       *                                                                *
       *
-      *  RLAM 06/04/2021 10:11 Test Code Coverage
-
       *
       *
       ******************************************************************
