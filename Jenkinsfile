@@ -11,7 +11,7 @@ def linuxAgent = 'master'
 // GIT repositories
 def srcGitRepo = 'https://github.com/raylamgit/raygenapp.git'
 def srcGitBranch = 'main'
-def zAppBuildGitRepo = 'https://github.com/raylamgit/rayzapp.git'
+def zAppBuildGitRepo = 'https://github.com/IBM/dbb-zappbuild.git'
 def zAppBuildGitBranch = 'main'
 def dbbGitRepo =  'https://github.com/IBM/dbb.git'
 def dbbGitBranch = 'main'
