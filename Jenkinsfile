@@ -10,9 +10,9 @@ def linuxAgent = 'master'
 
 // GIT repositories
 def srcGitRepo = 'https://github.com/raylamgit/raygenapp.git'
-def srcGitBranch = 'main'
+def srcGitBranch = 'compileUtil'
 def zAppBuildGitRepo = 'https://github.com/raylamgit/rayzapp.git'
-def zAppBuildGitBranch = 'sysprintUtil'
+def zAppBuildGitBranch = 'compileUtil'
 def dbbGitRepo =  'https://github.com/IBM/dbb.git'
 def dbbGitBranch = 'main'
 echo 'raygenapp Jenkinsfile pipeline DBB'
