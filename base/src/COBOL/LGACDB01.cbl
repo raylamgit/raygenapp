@@ -1,5 +1,5 @@
       ******************************************************************
-      *  Ray lam 03/30/2023 Testing Sysprint 1
+      *  Ray lam 03/30/2023 Testing Processor 1
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
