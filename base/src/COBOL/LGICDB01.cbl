@@ -1,5 +1,5 @@
       ******************************************************************
-      *   ray lam 04/04/2023 compileUtil 1,2,3,4,5
+      *   ray lam 04/10/2023 RLAM.RAYGENAP.CICSLOAD,1
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
