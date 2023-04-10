@@ -1,5 +1,5 @@
       ******************************************************************
-      *   ray lam 04/10/2023 RLAM.RAYGENAP.CICSLOAD,1
+      *   ray lam 04/10/2023 scan 1
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
