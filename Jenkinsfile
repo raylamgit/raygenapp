@@ -145,7 +145,7 @@ echo 'raygenapp Jenkinsfile pipeline dir -> raygenapp '
                                                                      ]]])
                     }
 
-                    dir("rayzapp") {
+                    dir("mvpzapp") {
                         sh(script: 'rm -f .git/info/sparse-checkout', returnStdout: true)
                         def scmVars =
                             checkout([$class: 'GitSCM', branches: [[name: zAppBuildGitBranch]],
@@ -204,7 +204,7 @@ echo 'raygenapp Jenkinsfile pipeline dir -> raygenapp '
                         dbbHome = env.DBB_HOME
                         dbbUrl = env.DBB_URL
                         dbbHlq = env.DBB_HLQ
-                        sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/rayzapp/build.groovy --logEncoding UTF-8 -w ${WORKSPACE} --application raygenapp --sourceDir ${WORKSPACE}  --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER} --hlq ${dbbHlq}.RAYGENAP --url $dbbUrl $dbbCredentialOptions -d $dbbBuildType $buildVerbose $dbbZunitCccOpts $dbbBuildExtraOpts "
+                        sh "$dbbHome/bin/groovyz $dbbGroovyzOpts ${WORKSPACE}/mvpzapp/build.groovy --logEncoding UTF-8 -w ${WORKSPACE} --application raygenapp --sourceDir ${WORKSPACE}  --workDir ${WORKSPACE}/BUILD-${BUILD_NUMBER} --hlq ${dbbHlq}.RAYGENAP --url $dbbUrl $dbbCredentialOptions -d $dbbBuildType $buildVerbose $dbbZunitCccOpts $dbbBuildExtraOpts "
                         def files = findFiles(glob: "**BUILD-${BUILD_NUMBER}/**/buildList.txt")
                         // Do not enter into some steps if nothing in the build list
                         hasBuildFiles = files.length > 0 && files[0].length > 0
