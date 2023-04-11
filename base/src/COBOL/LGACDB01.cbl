@@ -1,5 +1,5 @@
       ******************************************************************
-      *  Ray lam 04/11/2023 Testing processor.groovy
+      *  Ray lam 04/11/2023 comment out Cobol.groovy methods
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
