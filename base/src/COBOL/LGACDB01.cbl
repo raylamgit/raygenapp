@@ -1,5 +1,5 @@
       ******************************************************************
-      *  Ray lam 04/12/2023 testing concat 1
+      *  Ray lam 04/12/2023 testing concat 1,2
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
