@@ -1,5 +1,5 @@
       ******************************************************************
-      *  Ray lam 04/11/2023 comment out cobol.groovy methods
+      *  Ray lam 04/12/2023 testing concat
       *                                                                *
       * LICENSED MATERIALS - PROPERTY OF IBM                           *
       *                                                                *
